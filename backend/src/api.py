@@ -57,9 +57,8 @@ def get_drinks():
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
 def get_drinks_detail(payload):
-    formatted_drinks = []
-
     try:
+        formatted_drinks = []
         for drink in Drink.query.all():
             formatted_drinks.append(drink.long())
 
