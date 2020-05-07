@@ -55,7 +55,8 @@ def get_drinks():
 
 
 @app.route('/drinks-detail')
-def get_drinks_detail():
+@requires_auth('get:drinks-detail')
+def get_drinks_detail(payload):
     formatted_drinks = []
 
     try:
@@ -238,9 +239,3 @@ def internal_server_error(error):
         'error': 500,
         'message': 'Internal server error'
     }), 500
-
-
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above 
-'''
