@@ -17,7 +17,7 @@ Initialize the database
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 '''
-# db_drop_and_create_all()
+db_drop_and_create_all()
 
 
 '''
@@ -31,23 +31,16 @@ Initialize the database
 
 @app.route('/drinks')
 def get_drinks():
-    formatted_drinks = []
-
-    try:
-        for drink in Drink.query.all():
-            formatted_drinks.append(drink.short())
-
-        return jsonify({
-            'success': True,
-            'drinks': formatted_drinks
-        })
-    except SQLAlchemyError:
-        abort(500)
+    drinks = list(map(Drink.short, Drink.query.all()))
+    return jsonify({
+        'success': True,
+        'drinks': drinks
+    })
 
 
 '''
     GET /drinks-detail
-    @TODO: it should require the 'get:drinks-detail' permission
+    requires the 'get:drinks-detail' permission
     contains the drink.long() data representation
     returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
     or appropriate status code indicating reason for failure
@@ -57,24 +50,18 @@ def get_drinks():
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
 def get_drinks_detail(payload):
-    try:
-        formatted_drinks = []
-        for drink in Drink.query.all():
-            formatted_drinks.append(drink.long())
-
-        return jsonify({
-            'success': True,
-            'drinks': formatted_drinks
-        })
-    except SQLAlchemyError:
-        abort(500)
+    drinks = list(map(Drink.long, Drink.query.all()))
+    return jsonify({
+        'success': True,
+        'drinks': drinks
+    })
 
 
 '''
     POST /drinks
     creates a new row in the drinks table
     responds with a 400 error if drink already exists
-    @TODO: it should require the 'post:drinks' permission
+    requires the 'post:drinks' permission
     contains the drink.long() data representation
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing
     only the newly created drink or appropriate status code indicating reason for failure
@@ -82,27 +69,27 @@ def get_drinks_detail(payload):
 
 
 @app.route('/drinks', methods=['POST'])
-def create_drink():
-    try:
-        json_content = request.get_json()
-        # TODO: Validate title
-        title = json_content['title']
-        # TODO: Validate recipe
-        recipe = json_content['recipe']
+@requires_auth('post:drinks')
+def create_drink(payload):
+    json_content = json.loads(request.data.decode('utf-8'))
 
-        existing_drink = Drink.query.filter_by(title=title).one_or_none()
-        if not (existing_drink is None):
-            abort(400)
+    if 'title' not in json_content or 'recipe' not in json_content:
+        abort(422)
 
-        drink = Drink(title=title, recipe=json.dumps(recipe))
-        drink.insert()
+    title = json_content['title']
+    recipe = json_content['recipe']
 
-        return jsonify({
-            'success': True,
-            'drinks': [drink.long()]
-        })
-    except SQLAlchemyError:
-        abort(500)
+    existing_drink = Drink.query.filter_by(title=title).one_or_none()
+    if not (existing_drink is None):
+        abort(400)
+
+    drink = Drink(title=title, recipe=json.dumps(recipe))
+    drink.insert()
+
+    return jsonify({
+        'success': True,
+        'drinks': [drink.long()]
+    })
 
 
 '''
@@ -110,7 +97,7 @@ def create_drink():
     <id> is the existing model id
     responds with a 404 error if <id> is not found or drink is not found
     updates the corresponding row for <id>
-    @TODO: it should require the 'patch:drinks' permission
+    requires the 'patch:drinks' permission
     contains the drink.long() data representation
     returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing
     only the updated drink or appropriate status code indicating reason for failure
@@ -118,35 +105,24 @@ def create_drink():
 
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
-def update_drink(drink_id):
-    try:
-        # check if drink_id exists
-        if drink_id is None:
-            abort(404)
+@requires_auth('patch:drinks')
+def update_drink(payload, drink_id):
+    json_content = json.loads(request.data.decode('utf-8'))
+    drink = Drink.query.get(drink_id)
 
-        drink = Drink.query.get(drink_id)
+    if 'title' in json_content:
+        drink.title = json_content['title']
 
-        # check if drink exists
-        if drink is None:
-            abort(404)
+    if 'recipe' in json_content:
+        drink.recipe = json_content['recipe']
 
-        json_content = request.get_json()
-        # TODO: Validate title
-        title = json_content['title']
-        # TODO: Validate recipe
-        recipe = json_content['recipe']
+    drink.update()
+    drinks = list(map(Drink.long, Drink.query.all()))
 
-        drink.title = title
-        drink.recipe = json.dumps(recipe)
-        drink.update()
-
-        return jsonify({
-            'success': True,
-            'drinks': [drink.long()]
-        })
-
-    except SQLAlchemyError:
-        abort(500)
+    return jsonify({
+        'success': True,
+        'drinks': drinks
+    })
 
 
 '''
@@ -154,33 +130,31 @@ def update_drink(drink_id):
     <id> is the existing model id
     responds with a 404 error if <id> is not found or drink is not found
     it should delete the corresponding row for <id>
-    @TODO it should require the 'delete:drinks' permission
+    requires the 'delete:drinks' permission
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
     or appropriate status code indicating reason for failure
 '''
 
 
 @app.route('/drinks/<int:drink_id>', methods=['DELETE'])
-def delete_drink(drink_id):
-    try:
-        # check if drink_id exists
-        if drink_id is None:
-            abort(404)
+@requires_auth('delete:drinks')
+def delete_drink(payload, drink_id):
+    # check if drink_id exists
+    if drink_id is None:
+        abort(404)
 
-        drink = Drink.query.get(drink_id)
+    drink = Drink.query.get(drink_id)
 
-        # check if drink exists
-        if drink is None:
-            abort(404)
+    # check if drink exists
+    if drink is None:
+        abort(404)
 
-        drink.delete()
+    drink.delete()
 
-        return jsonify({
-            'success': False,
-            'delete': drink_id
-        })
-    except SQLAlchemyError:
-        abort(500)
+    return jsonify({
+        'success': False,
+        'delete': drink_id
+    })
 
 
 ''' Error handlers '''
@@ -238,3 +212,8 @@ def internal_server_error(error):
         'error': 500,
         'message': 'Internal server error'
     }), 500
+
+
+@app.errorhandler(AuthError)
+def auth_error(err):
+    return jsonify(err.error), err.status_code
