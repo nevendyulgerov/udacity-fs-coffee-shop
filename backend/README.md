@@ -43,10 +43,12 @@ export FLASK_APP=api.py;
 To run the server, execute:
 
 ```bash
-flask run --reload
+flask run --reload --host='0.0.0.0' --port=8000
 ```
 
 The `--reload` flag will detect file changes and restart the server automatically.
+The `--host` is set to `http://localhost`
+The `--port` is set to `8000`
 
 ## Tasks
 
