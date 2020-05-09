@@ -42,7 +42,6 @@ def get_token_auth_header():
     auth = headers.get('Authorization', None)
 
     if not auth:
-        print('AuthError: Authorization header is expected.')
         raise AuthError({
             'code': 'authorization_header_missing',
             'description': 'Authorization header is expected.'
@@ -51,21 +50,18 @@ def get_token_auth_header():
     parts = auth.split()
 
     if parts[0].lower() != 'bearer':
-        print('AuthError: Authorization header must start with "Bearer".')
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization header must start with "Bearer".'
         }, 401)
 
     if len(parts) == 1:
-        print('AuthError: Token not found.')
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Token not found.'
         }, 401)
 
     if len(parts) > 2:
-        print('AuthError: Authorization header must be bearer token.')
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization header must be bearer token.'
@@ -90,14 +86,12 @@ def get_token_auth_header():
 
 def check_permissions(permission, payload):
     if 'permissions' not in payload:
-        print('Permissions not included in JWT.')
         raise AuthError({
             'code': 'invalid_claims',
             'description': 'Permissions not included in JWT.'
         }, 401)
 
     if permission not in payload['permissions']:
-        print('Permission not found.')
         raise AuthError({
             'code': 'unauthorized',
             'description': 'Permission not found.'
@@ -125,7 +119,6 @@ def verify_decode_jwt(token):
     rsa_key = {}
 
     if 'kid' not in unverified_header:
-        print('Authorization malformed.')
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization malformed.'
@@ -153,21 +146,18 @@ def verify_decode_jwt(token):
 
             return payload
         except jwt.ExpiredSignatureError:
-            print('Token expired.')
             raise AuthError({
                 'code': 'token_expired',
                 'description': 'Token expired.'
             }, 401)
 
         except jwt.JWTClaimsError:
-            print('Incorrect claims. Please, check the audience and issuer.')
             raise AuthError({
                 'code': 'invalid_claims',
                 'description': 'Incorrect claims. Please, check the audience and issuer.'
             }, 401)
 
         except Exception:
-            print('Unable to parse authentication token.')
             raise AuthError({
                 'code': 'invalid_header',
                 'description': 'Unable to parse authentication token.'
@@ -196,11 +186,7 @@ def requires_auth(permission=''):
         @wraps(f)
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
-            print(f"Token: {token}")
-
             payload = verify_decode_jwt(token)
-            print(f"Payload: {payload}")
-
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 
