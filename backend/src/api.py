@@ -141,7 +141,7 @@ def update_drink(payload, drink_id):
 def delete_drink(payload, drink_id):
     # check if drink_id exists
     if drink_id is None:
-        abort(404)
+        abort(422)
 
     drink = Drink.query.get(drink_id)
 
@@ -215,5 +215,5 @@ def internal_server_error(error):
 
 
 @app.errorhandler(AuthError)
-def auth_error(err):
-    return jsonify(err.error), err.status_code
+def auth_error(error):
+    return jsonify(error.error), error.status_code
